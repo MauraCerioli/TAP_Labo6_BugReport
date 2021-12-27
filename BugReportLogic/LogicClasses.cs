@@ -1,6 +1,6 @@
 ﻿using System;
 
 namespace BugReportLogic {
-    public class Class1 {
+    public class LogicClasses {
     }
 }
