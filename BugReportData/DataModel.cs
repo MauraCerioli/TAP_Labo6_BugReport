@@ -153,6 +153,7 @@ namespace BugReportData {
         public bool IsAdmin { get; set; }
         [MinLength(3)]
         [MaxLength(50)]
+        [Required]//to make using Validator approach feasible
         public string Name { get; set; }
         [MinLength(2)]
         [MaxLength(256)]

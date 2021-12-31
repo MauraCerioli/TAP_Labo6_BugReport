@@ -33,11 +33,61 @@ namespace BugReportLogic {
             if (!IsAdmin) throw new UnauthorizedException("only admin can add users");
             var user = new User(login, BugReportConstants.HashPassword(password), isAdmin, name, familyName, birthdate,
                 fiscalCode) { Address = address };
+            /*
+            var vc = new ValidationContext(user);
+            try {
+                Validator.ValidateObject(user,vc,true);
+            }
+            catch (ValidationException e) {
+                if (e.ValidationAttribute.GetType() == typeof(MinLengthAttribute)) {
+                    throw new BRException($"{e.ValidationResult.MemberNames.First()} is too short", e);
+                }
+                //all other possibilities
+            }*/
+            //for each property an independent check
+            var vc = new ValidationContext(user){MemberName = nameof(user.Password)};
+            try {
+                Validator.ValidateProperty(password, vc);
+            }
+            catch (ValidationException e) {
+                if (e.ValidationAttribute.GetType() == typeof(MinLengthAttribute)) {
+                    throw new BRException($"{nameof(user.Password)} is too short", e);
+                }
+                //all other possibilities
+            }
 
+            using (var c= new BugReportContext(ConnectionString)) {
+                c.Users.Add(user);
+                c.SaveChanges();
+            }
+        }
+
+        public void UpdateUserName(int userId, string newName) {
+            if (!IsAdmin&&userId!=UserId) throw new UnauthorizedException("only admin can change another user name");
+            using (var c=new BugReportContext(ConnectionString)) {
+                // TODO enclose in a try-catch to deal with not available DB or non-existing user
+                var user = c.Users.Single(u => u.UserId == userId);
+                var vc = new ValidationContext(user) { MemberName = nameof(user.Name) };
+                Validator.ValidateProperty(newName,vc);//TODO enclose in try-catch to deal with inappropriate new names
+                c.SaveChanges();
+            }
+        }
+
+        public void UpdateUserName(string newName) {
+            UpdateUserName(UserId,newName);
+        }
+
+        public void DeleteUser(int userId) {
+            if (!IsAdmin && userId != UserId) throw new UnauthorizedException("only admin can delete another user");
+            using (var c=new BugReportContext(ConnectionString)) {
+                var user = c.Users.Single(u => u.UserId == userId);//TODO deal with exceptions
+                c.Users.Remove(user);
+                c.SaveChanges();
+            }
         }
     }
 
-    public class BugReportSystem {
+        public class BugReportSystem {
         public string ConnectionString { get; }
         public BugReportSystem(string connectionString) {
             ConnectionString = connectionString;
